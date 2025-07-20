@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bed Calculator</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" rel="stylesheet">
+  <style>
+    .form-section {
+      border: 1px solid #ccc;
+      padding: 15px;
+      margin-bottom: 10px;
+      border-radius: 5px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container mt-5">
+    <h2 class="mb-4">Enter Bed Information to Calculate</h2>
+
+    <form id="bedForm">
+      <div id="formRows"></div>
+      <button type="button" class="btn btn-secondary" id="addMore">Add More</button>
+      <button type="submit" class="btn btn-primary">Calculate Bed</button>
+    </form>
+
+    <div id="resultTable" class="mt-5"></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
+
+  <script type="module">
+    import { calculateBed, groupByDate, splitToHospitalDays } from './src/methodes.js';
+    let formCounter = 0;
+
+    function createFormRow(index) {
+        return `
+            <div class="form-section">
+                <div class="row">
+                    <div class="col-md-3">
+                        <label>Bed Category</label>
+                        <input name="bed_category_${index}" class="form-control" required>
+                    </div>
+                    <div class="col-md-3">
+                        <label>Bed Name</label>
+                        <input name="bed_name_${index}" class="form-control" required>
+                    </div>
+                    <div class="col-md-2">
+                        <label>Bed Rent</label>
+                        <input name="bed_rent_${index}" type="number" class="form-control" required>
+                    </div>
+                    <div class="col-md-2">
+                        <label>Start Date</label>
+                        <input name="start_date_${index}" class="form-control datetime" required>
+                    </div>
+                    <div class="col-md-2">
+                        <label>End Date</label>
+                        <input name="end_date_${index}" class="form-control datetime" required>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    
+    function gatherFormData() {
+        const rows = [];
+        for (let i = 0; i < formCounter; i++) {
+            const row = {
+                bed_category: document.querySelector(`[name=bed_category_${i}]`).value,
+                bed_name: document.querySelector(`[name=bed_name_${i}]`).value,
+                bed_rent: parseFloat(document.querySelector(`[name=bed_rent_${i}]`).value),
+                start_date: document.querySelector(`[name=start_date_${i}]`).value,
+                end_date: document.querySelector(`[name=end_date_${i}]`).value,
+            };
+            rows.push(row);
+        }
+        return rows;
+    }
+
+    function renderTable(data) {
+        
+        const tableKeys = Object.keys(data[0]).filter(key => key !== 'raw_start' && key !== 'raw_end');
+        let html = '<h4 class="mt-5">Bed calculation details</h4>';
+        html += '<table class="table table-bordered"><thead><tr>';
+        html += tableKeys.map(k => `<th>${k.replace(/_/g, ' ')}</th>`).join('');
+        html += '</tr></thead><tbody>';
+        data.forEach(row => {
+            html += '<tr>' + tableKeys.map(val => `<td>${row[val]}</td>`).join('') + '</tr>';
+        });
+        html += '</tbody></table>';
+        document.getElementById('resultTable').innerHTML = html;
+    }
+
+    function renderFilteredTable(data) {
+        const filtered = data.filter(row => row.bed_count !== 0);
+        let totalBeds = 0;
+        let totalCharge = 0;
+
+        if (filtered.length === 0) {
+            document.getElementById('resultTable').insertAdjacentHTML('beforeend', '<p class="mt-4 text-danger">No rows with bed_count = 1</p>');
+            return;
+        }
+
+        const tableKeys = Object.keys(data[0]).filter(key => key !== 'raw_start' && key !== 'raw_end');
+        let html = '<h4 class="mt-5">Calculated Bed Information (Final)</h4>';
+        html += '<table class="table table-bordered mt-2"><thead><tr>';
+        html += tableKeys.map(k => `<th>${k.replace(/_/g, ' ')}</th>`).join('');
+        html += '</tr></thead><tbody>';
+
+        filtered.forEach(row => {
+            totalBeds += row.bed_count;
+            totalCharge += row.bed_charge;
+
+            html += '<tr>' + tableKeys.map(val => `<td>${row[val]}</td>`).join('') + '</tr>';
+        });
+
+        html += `
+            <tr class="fw-bold">
+                <td colspan="${Object.keys(filtered[0]).length - 4}">Total</td>
+                <td>${totalBeds}</td>
+                <td>${totalCharge.toFixed(2)}</td>
+            </tr>
+        `;
+
+        html += '</tbody></table>';
+
+        document.getElementById('resultTable').insertAdjacentHTML('beforeend', html);
+    }
+
+    document.getElementById('addMore').addEventListener('click', () => {
+        const container = document.getElementById('formRows');
+        container.insertAdjacentHTML('beforeend', createFormRow(formCounter));
+        flatpickr(`input[name=start_date_${formCounter}]`, { enableTime: true, dateFormat: "m/d/Y H:i" });
+        flatpickr(`input[name=end_date_${formCounter}]`, { enableTime: true, dateFormat: "m/d/Y H:i" });
+        formCounter++;
+    });
+
+    document.getElementById('bedForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+        const inputData = gatherFormData();
+        const daily = splitToHospitalDays(inputData);
+        const grouped = groupByDate(daily);
+        const result = calculateBed(daily, grouped);
+
+        const totalBedCount = result.reduce((sum, seg) => sum + seg['bed_count'], 0);
+        const uniqueDates = new Set(result.map(seg => seg.Date));
+
+        if (uniqueDates.size <= 2 && totalBedCount < 1) {
+            // find the one with max hours
+            const maxSegment = result.reduce((max, seg) =>
+                seg.Hour > max.Hour ? seg : max
+            );
+
+            maxSegment['bed_count'] = 1;
+            maxSegment['bed_charge'] = +(maxSegment.bed_rent * 1).toFixed(2);
+        }
+
+        renderTable(result);
+        renderFilteredTable(result);
+    });
+
+    // Load initial row
+    document.getElementById('addMore').click();
+  </script>
+</body>
+
+</html>
