@@ -44,15 +44,35 @@
                 <div class="row">
                     <div class="col-md-3">
                         <label>Bed Category</label>
-                        <input name="bed_category_${index}" class="form-control" required>
+                        <select name="bed_category_${index}" class="form-control" required>
+                            <option>Dentistry Ward</option>
+                            <option>Tween Shared Cabin Ward</option>
+                            <option>Non Paying Bed Ward</option>
+                            <option>General ICU Level 1</option>
+                            <option>General ICU Level 3</option>
+                            <option>Medicine Ward</option>
+                        </select>
                     </div>
                     <div class="col-md-3">
                         <label>Bed Name</label>
-                        <input name="bed_name_${index}" class="form-control" required>
+                        <select name="bed_name_${index}" class="form-control" required>
+                            <option>BED 01</option>
+                            <option>BED 02</option>
+                            <option>BED 03</option>
+                            <option>BED 04</option>
+                            <option>BED 05</option>
+                            <option>BED 06</option>
+                        </select>
                     </div>
                     <div class="col-md-2">
                         <label>Bed Rent</label>
-                        <input name="bed_rent_${index}" type="number" class="form-control" required>
+                        <select name="bed_rent_${index}" type="number" class="form-control" required>
+                            <option>850</option>
+                            <option>1100</option>
+                            <option>3500</option>
+                            <option>6500</option>
+                            <option>0</option>
+                        </select>
                     </div>
                     <div class="col-md-2">
                         <label>Start Date</label>
@@ -66,6 +86,7 @@
             </div>
         `;
     }
+
 
     
     function gatherFormData() {
