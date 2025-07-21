@@ -101,6 +101,10 @@ export function calculateBed(dailyBedUsage, groupedByDate) {
                     else if (totalMinutes > 720 && totalMinutes <= 900) bedCount = 0; // 12–3 PM (grace)
                     else if (totalMinutes > 900 && totalMinutes <= 1080) bedCount = 0.5; // 3–6 PM
                     else bedCount = 1; // after 6 PM
+                    
+                    if(stayHour > hour){
+                        bedCount = 1;
+                    }
                 }
 
                 finalResult.push({
