@@ -93,6 +93,7 @@ export function calculateBed(dailyBedUsage, groupedByDate) {
                     }
                 }
                 else if (seg === lastSegment) {
+                    const stayHour = seg.hour;
                     const hour = seg.raw_end.getHours();
                     const min = seg.raw_end.getMinutes();
                     const totalMinutes = hour * 60 + min;
